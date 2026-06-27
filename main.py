@@ -2,6 +2,7 @@
 Entry point for the LexisNexis NLP Document Classification task.
 """
 
+from pathlib import Path
 from sklearn.model_selection import train_test_split
 
 from src.classifier import (
@@ -11,13 +12,16 @@ from src.classifier import (
     EmbeddingClassifier,
     Evaluator,
 )
-from src.classifier.dataset import LABEL_NAMES
+from src.classifier.dataset import LABEL_NAMES, DEFAULT_PATH
 
 
 def main():
-    # --- Data ---
-    print("Generating synthetic dataset...")
-    raw_df = SyntheticDataset(n=10_000).generate()
+    # --- Data: generate and save once, load on subsequent runs ---
+    if not DEFAULT_PATH.exists():
+        print("Generating and saving synthetic dataset...")
+        SyntheticDataset(n=10_000).save(DEFAULT_PATH)
+
+    raw_df = SyntheticDataset.load(DEFAULT_PATH)
     print(f"Class distribution:\n{raw_df['label'].value_counts()}\n")
 
     # --- Preprocessing ---
@@ -36,24 +40,22 @@ def main():
     evaluator = Evaluator(label_names=LABEL_NAMES)
     results = {}
 
-    # --- TF-IDF baseline ---
-    print("=== TF-IDF Classifier ===")
+    # --- TF-IDF + Random Forest ---
+    print("=== TF-IDF + Random Forest ===")
     tfidf_model = TfidfClassifier()
     tfidf_model.fit(X_train, y_train)
-    y_pred = tfidf_model.predict(X_test)
-    results['TF-IDF + LogReg'] = evaluator.evaluate(y_test, y_pred)
+    results['TF-IDF + Random Forest'] = evaluator.evaluate(y_test, tfidf_model.predict(X_test))
 
-    # --- Embedding model (optional) ---
+    # --- Embedding + Random Forest (optional) ---
     try:
-        print("=== Embedding Classifier ===")
+        print("=== Embeddings + Random Forest ===")
         emb_model = EmbeddingClassifier()
         emb_model.fit(X_train, y_train)
-        y_pred_emb = emb_model.predict(X_test)
-        results['Embeddings + LogReg'] = evaluator.evaluate(y_test, y_pred_emb)
+        results['Embeddings + Random Forest'] = evaluator.evaluate(y_test, emb_model.predict(X_test))
     except ImportError as e:
         print(f"[SKIP] {e}\n")
 
-    # --- Summary ---
+    # --- Comparison table ---
     evaluator.compare(results)
 
 
