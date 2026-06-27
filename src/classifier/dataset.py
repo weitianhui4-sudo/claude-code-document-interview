@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
+from pathlib import Path
 
 LABEL_NAMES = ['Compliance Risk', 'Contract Breach', 'Neutral']
+DEFAULT_PATH = Path('data/synthetic_dataset.csv')
 
 
 class SyntheticDataset:
@@ -39,6 +41,24 @@ class SyntheticDataset:
         self.n = n
         self.class_probs = class_probs
         self.seed = seed
+
+    def save(self, path: Path = DEFAULT_PATH) -> Path:
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self.generate().to_csv(path, index=False)
+        print(f"Dataset saved to {path}")
+        return path
+
+    @staticmethod
+    def load(path: Path = DEFAULT_PATH) -> pd.DataFrame:
+        path = Path(path)
+        if not path.exists():
+            raise FileNotFoundError(
+                f"No dataset found at {path}. Run SyntheticDataset().save() first."
+            )
+        df = pd.read_csv(path)
+        print(f"Dataset loaded from {path}  ({len(df):,} rows)")
+        return df
 
     def generate(self) -> pd.DataFrame:
         rng = np.random.default_rng(self.seed)

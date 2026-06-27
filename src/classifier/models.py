@@ -1,23 +1,22 @@
 import numpy as np
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
 
 from .features import TfidfFeaturizer, EmbeddingFeaturizer
 
 
 class TfidfClassifier:
     """
-    TF-IDF + Logistic Regression pipeline.
+    TF-IDF + Random Forest pipeline.
     class_weight='balanced' handles severe class imbalance automatically.
     """
 
-    def __init__(self, C: float = 1.0, max_features: int = 50_000):
+    def __init__(self, n_estimators: int = 200, max_features: int = 50_000):
         self._featurizer = TfidfFeaturizer(max_features=max_features)
-        self._clf = LogisticRegression(
+        self._clf = RandomForestClassifier(
+            n_estimators=n_estimators,
             class_weight='balanced',
-            max_iter=1000,
-            C=C,
-            solver='lbfgs',
+            random_state=42,
+            n_jobs=-1,
         )
 
     def fit(self, texts: list[str], labels: list[str]) -> 'TfidfClassifier':
@@ -40,17 +39,17 @@ class TfidfClassifier:
 
 class EmbeddingClassifier:
     """
-    Sentence-embedding + Logistic Regression classifier.
+    Sentence-embedding + Random Forest classifier.
     Requires sentence-transformers to be installed.
     """
 
-    def __init__(self, model_name: str = 'all-MiniLM-L6-v2', C: float = 1.0):
+    def __init__(self, model_name: str = 'all-MiniLM-L6-v2', n_estimators: int = 200):
         self._featurizer = EmbeddingFeaturizer(model_name=model_name)
-        self._clf = LogisticRegression(
+        self._clf = RandomForestClassifier(
+            n_estimators=n_estimators,
             class_weight='balanced',
-            max_iter=1000,
-            C=C,
-            solver='lbfgs',
+            random_state=42,
+            n_jobs=-1,
         )
 
     def fit(self, texts: list[str], labels: list[str]) -> 'EmbeddingClassifier':
